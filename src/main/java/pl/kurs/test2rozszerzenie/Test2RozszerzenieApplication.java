@@ -12,8 +12,8 @@ public class Test2RozszerzenieApplication {
     public static void main(String[] args) {
         SpringApplication.run(Test2RozszerzenieApplication.class, args);
 
-
-        MathService.run();
+        MathService mathService = new MathService();
+        mathService.run();
 
     }
 }
