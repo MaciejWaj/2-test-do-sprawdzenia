@@ -1,8 +1,8 @@
 package pl.kurs.test2rozszerzenie.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.stereotype.Service;
-import org.w3c.dom.ls.LSOutput;
 import pl.kurs.test2rozszerzenie.exception.InvalidEquationFormatException;
 import pl.kurs.test2rozszerzenie.exception.UnknownOperatorException;
 import pl.kurs.test2rozszerzenie.repository.OperationHistory;
@@ -13,23 +13,29 @@ import java.time.LocalDate;
 import java.util.*;
 
 @Service
+@ComponentScan(basePackages = {"pl.kurs.test2rozszerzenie.repository"})
 public class MathService {
 
     @Autowired
-    private OperationHistoryRepository operationHistoryRepository;
-
+    public OperationHistoryRepository repository;
 
 
     public void run() {
         Scanner scanner = new Scanner(System.in);
-        System.out.println("calculator");
+        String end = "x";
+
+        while(true) {
+            System.out.println("to close the calculator press x");
+        System.out.println("state the equation");
         String input = scanner.nextLine();
+        if(input.equalsIgnoreCase(end)) {
+            break;
+        } else {
         double result = (MathService.evaluate(input));
         System.out.println(result);
         saveToDataBase(input, result);
+        }}
     }
-
-
 
     public static double evaluate(String expression) {
         checkExpressionIsCorrect(expression);
@@ -52,13 +58,13 @@ public class MathService {
                 while (operator.peek() != '(')
                     pushValues(values, operator);
                 operator.pop();
-            }    else if (digitAndOperatorList[i] == OperationImpl.SUBTRACT.symbol && (i == 0 || !Character.isDigit(digitAndOperatorList[i - 1]))) {
-                    StringBuilder stringBuilder = new StringBuilder();
-                    stringBuilder.append(digitAndOperatorList[i++]);
-                    while (i < digitAndOperatorList.length && digitAndOperatorList[i] >= '0' && digitAndOperatorList[i] <= '9')
-                        stringBuilder.append(digitAndOperatorList[i++]);
-                    values.push(Double.parseDouble(stringBuilder.toString()));
-                    i--;
+            } else if (digitAndOperatorList[i] == OperationImpl.SUBTRACT.symbol && (i == 0 || (digitAndOperatorList[i - 1] != ')' && !Character.isDigit(digitAndOperatorList[i - 1])))) {
+                StringBuilder stringBuilder = new StringBuilder();
+                stringBuilder.append('-');
+                while (i + 1 < digitAndOperatorList.length && digitAndOperatorList[i + 1] >= '0' && digitAndOperatorList[i + 1] <= '9') {
+                    stringBuilder.append(digitAndOperatorList[++i]);
+                }
+                values.push(Double.parseDouble(stringBuilder.toString()));
             } else if (OperationImpl.isOperator(digitAndOperatorList[i])) {
                 while (!operator.empty() && orderOfOperations(digitAndOperatorList[i],
                                 operator.peek())) {
@@ -70,7 +76,6 @@ public class MathService {
         while (!operator.empty())
             pushValues(values, operator);
             return values.pop();
-
     }
 
     private void saveToDataBase(String input, double result) {
@@ -78,13 +83,13 @@ public class MathService {
         operationHistory.setExpression(input);
         operationHistory.setResult(result);
         operationHistory.setLocalDate(LocalDate.now());
-        operationHistoryRepository.save(operationHistory);
+        repository.save(operationHistory);
     }
 
     private static void pushValues(Stack<Double> values, Stack<Character> operator) {
-        values.push(applyOperation(operator.pop(),
-                values.pop(),
-                values.pop()));
+        double secondOperand = values.pop();
+        double firstOperand = values.pop();
+        values.push(applyOperation(operator.pop(), firstOperand, secondOperand));
     }
 
     private static void checkExpressionIsCorrect(String expression) {
@@ -99,15 +104,11 @@ public class MathService {
         } throw new InvalidEquationFormatException("Equation must start with a number");
     }
 
-
     public static boolean orderOfOperations ( char op1, char op2){
         if (op2 == '(' || op2 == ')')
             return false;
-        if ((op1 == OperationImpl.MULTIPLY.symbol || op1 == OperationImpl.DIVIDE.symbol) &&
-                (op2 == OperationImpl.ADD.symbol || op2 == OperationImpl.SUBTRACT.symbol))
-            return false;
-        else
-            return true;
+        return (op1 != OperationImpl.MULTIPLY.symbol && op1 != OperationImpl.DIVIDE.symbol) ||
+                (op2 != OperationImpl.ADD.symbol && op2 != OperationImpl.SUBTRACT.symbol);
     }
 
     public static double applyOperation ( char op, double b, double a) throws UnknownOperatorException {
@@ -116,9 +117,6 @@ public class MathService {
         }
         return OperationImpl.getOperator(op).operation(b, a);
     }
-
-
-
 }
 
 

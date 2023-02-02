@@ -1,11 +1,12 @@
 package pl.kurs.test2rozszerzenie.repository;
+import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.Date;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "operation history")
 public class OperationHistory {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_operation")
@@ -15,6 +16,8 @@ public class OperationHistory {
     private String expression;
     private double result;
 
+    public OperationHistory() {
+    }
 
 
     public Long getId() {
@@ -46,6 +49,12 @@ public class OperationHistory {
     }
 
     public void setResult(double result) {
+        this.result = result;
+    }
+
+    public OperationHistory(LocalDate localDate, String expression, double result) {
+        this.localDate = localDate;
+        this.expression = expression;
         this.result = result;
     }
 }
